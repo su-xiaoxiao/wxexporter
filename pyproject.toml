@@ -1,0 +1,15 @@
+[project]
+name = "wxexporter-fetcher"
+version = "0.1.0"
+description = "Scrapling-based WeChat article fetcher. Called as a subprocess by the TS core (ScraplingRunner)."
+requires-python = ">=3.10"
+dependencies = [
+    "scrapling[fetchers]",
+    "html2text",
+]
+
+# Usage:
+#   uv sync                       # build .venv once (scrapling + html2text)
+#   uv run python fetcher/scrapling_fetch.py <url> --json
+# ScraplingRunner (TS) spawns `uv run python ...` so the venv is reused across
+# calls (no per-call --with cold start). This is the P1 perf fix applied early.

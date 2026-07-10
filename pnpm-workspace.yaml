@@ -1,0 +1,4 @@
+# pnpm 11 settings. esbuild (tsx/vitest) postinstall links the platform binary.
+dangerouslyAllowAllBuilds: true
+onlyBuiltDependencies:
+  - esbuild
