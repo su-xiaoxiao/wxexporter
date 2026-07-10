@@ -2,9 +2,12 @@ import { defineCommand, runMain } from "citty";
 import { writeFile } from "node:fs/promises";
 import { LocalFacade } from "../facade/LocalFacade.js";
 import { ScraplingFetcher, ArticleFetchError } from "../core/ScraplingFetcher.js";
+import login from "./login.js";
+import articles from "./articles.js";
+import search from "./search.js";
 
 const articleCommand = defineCommand({
-  meta: { name: "article", description: "Fetch a WeChat article as Markdown" },
+  meta: { name: "article", description: "Fetch a WeChat article as Markdown (local, no server needed)" },
   args: {
     url: { type: "positional", description: "Article URL (mp.weixin.qq.com/s/...)" },
     out: {
@@ -26,7 +29,6 @@ const articleCommand = defineCommand({
       const article = await facade.fetchArticle(url);
       if (args.out) {
         await writeFile(args.out, article.markdown, "utf8");
-        // status goes to stderr so stdout stays clean for piping
         console.error(`wrote ${article.markdown.length} bytes to ${args.out}`);
       } else {
         process.stdout.write(article.markdown + "\n");
@@ -45,6 +47,9 @@ const main = defineCommand({
   meta: { name: "wxexport", description: "WeChat article → Markdown capability CLI" },
   subCommands: {
     article: articleCommand,
+    login,
+    articles,
+    search,
   },
 });
 

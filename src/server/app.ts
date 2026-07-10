@@ -4,16 +4,18 @@ import { LocalFacade } from "../facade/LocalFacade.js";
 import { ScraplingFetcher } from "../core/ScraplingFetcher.js";
 import { articleRoutes } from "./routes/article.js";
 import { statusApp } from "./routes/status.js";
+import { loginApp } from "./routes/login.js";
+import { mpApp } from "./routes/mp.js";
 import { logger } from "../logger.js";
 
 const app = new Hono();
 
-// One facade instance, shared by all entry points. RemoteFacade (M2) will be a
-// separate process-mode client to the same HTTP API.
 const facade = new LocalFacade(new ScraplingFetcher());
 
 app.route("/article", articleRoutes(facade));
 app.route("/status", statusApp);
+app.route("/login", loginApp);
+app.route("/mp", mpApp);
 
 const port = Number(process.env.PORT ?? 3000);
 
