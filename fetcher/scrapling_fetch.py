@@ -17,6 +17,14 @@ from urllib.parse import urlparse
 import html2text
 from scrapling.fetchers import Fetcher
 
+# Windows stdout defaults to the system codepage (cp936/GBK); force UTF-8 so
+# print(json, ensure_ascii=False) doesn't crash on chars like \xa0 (non-breaking
+# space), which are common in WeChat article bodies.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 DEFAULT_SELECTORS = [
     "article",
     "main",
