@@ -45,7 +45,7 @@ export default defineCommand({
     fakeid: { type: "positional", description: "公众号 fakeid(用 wxexport search 查)" },
     max: { type: "string", description: "最多导出多少篇(默认全部)", default: "" },
     concurrency: { type: "string", description: "并发数(默认 3,防风控)", default: "3" },
-    outDir: { type: "string", description: "输出目录(默认 ./<fakeid>)", default: "" },
+    outdir: { type: "string", description: "输出目录(默认 ./<fakeid>)" },
     resume: { type: "boolean", description: "断点续传,跳过已抓", default: false },
   },
   async run({ args }) {
@@ -57,7 +57,7 @@ export default defineCommand({
     const fakeid = args.fakeid as string;
     const max = args.max ? Number(args.max) : Infinity;
     const concurrency = Number(args.concurrency) || 3;
-    const outDir = (args.outDir as string) || `./${fakeid}`;
+    const outDir = (args.outdir as string | undefined) || `./${fakeid}`;
     const resume = args.resume as boolean;
 
     // 1. 列文章(分页)
