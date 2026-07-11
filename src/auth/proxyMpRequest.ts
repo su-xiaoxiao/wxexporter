@@ -22,21 +22,27 @@ export interface MpRequestOptions {
 export interface MpRequestResult {
   status: number;
   headers: Headers;
-  body: string;
+  /** 原始二进制 body(ArrayBuffer)。不 decode 成 string,避免损坏二进制响应
+   *  (如 qrcode JPEG 被当 UTF-8 解 → U+FFFD 填充 → 图片损坏)。
+   *  JSON route 用 decodeMpBody() 解码,二进制(qrcode)直接透传。 */
+  body: ArrayBuffer;
   /** 透传给 client 的 set-cookie(login 流程:uuid / auth-key)。 */
   setCookies: string[];
   /** action=login 成功时写入 cookieVault 的 authKey。 */
   authKey?: string;
 }
 
+/** 把 ArrayBuffer 当 UTF-8 文本解码(用于微信 JSON 响应)。 */
+export function decodeMpBody(body: ArrayBuffer): string {
+  return new TextDecoder().decode(body);
+}
+
 /**
  * 代理请求 mp.weixin.qq.com。轻改自原项目 server/utils/proxy-request.ts:14-144:
  *  - 去 H3Event / useRuntimeConfig / logRequest / logger
  *  - cookie 由 caller 传入(options.cookie 直接 / options.authKey 查 cookieVault)
- *  - cookieStore → cookieVault(单例,直接 import)
- *  - 返回结构化 MpRequestResult(caller 不需 clone Response)
- *
- * token 不在此注入:各 route handler 从 cookieVault.getToken(authKey) 拼 query params。
+ *  - cookieStore → cookieVault(单例)
+ *  - **body 用 arrayBuffer() 不 text()**,避免二进制(二维码 JPEG)被当 UTF-8 损坏
  */
 export async function proxyMpRequest(options: MpRequestOptions): Promise<MpRequestResult> {
   const headers = new Headers({
@@ -46,7 +52,6 @@ export async function proxyMpRequest(options: MpRequestOptions): Promise<MpReque
     "Accept-Encoding": "identity",
   });
 
-  // cookie 来源:options.cookie(登录 uuid 透传)> cookieVault.getCookie(authKey)(认证后)
   const cookie =
     options.cookie ?? (options.authKey ? cookieVault.getCookie(options.authKey) : null);
   if (cookie) headers.set("Cookie", cookie);
@@ -66,10 +71,9 @@ export async function proxyMpRequest(options: MpRequestOptions): Promise<MpReque
   let authKey: string | undefined;
 
   if (options.action === "start_login") {
-    // 透传微信下发的 uuid cookie 给 client(扫码后续请求带)
     setCookies = mpResponse.headers.getSetCookie().filter((c) => c.startsWith("uuid="));
   } else if (options.action === "login") {
-    // 提取 token + 全部 set-cookie,存 cookieVault,生成 authKey 返给 client
+    // bizlogin 返 JSON(redirect_url),用 clone().text() 解析(clone 不消费原 body)
     const text = await mpResponse.clone().text();
     let body: { redirect_url?: string };
     try {
@@ -90,6 +94,7 @@ export async function proxyMpRequest(options: MpRequestOptions): Promise<MpReque
     setCookies = [`auth-key=${authKey}; Path=/; HttpOnly`];
   }
 
-  const responseBody = await mpResponse.text();
+  // 关键:用 arrayBuffer() 读原始二进制,不 text()(避免 JPEG 二进制被当 UTF-8 损坏)
+  const responseBody = await mpResponse.arrayBuffer();
   return { status: mpResponse.status, headers: mpResponse.headers, body: responseBody, setCookies, authKey };
 }

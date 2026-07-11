@@ -43,13 +43,14 @@ export default defineCommand({
       console.error(`error: qrcode fetch failed (${qRes.status})`);
       process.exit(1);
     }
-    const png = Buffer.from(await qRes.arrayBuffer());
+    const qrBuf = Buffer.from(await qRes.arrayBuffer());
+    const mime = qRes.headers.get("content-type") ?? "image/jpeg";
 
     // 3. 起临时本地 server 显示二维码 + open 浏览器
     const html = `<!doctype html><meta charset="utf-8"><title>wxexport login</title>
 <body style="text-align:center;font-family:system-ui;padding:2rem">
 <h2>用微信扫码登录</h2>
-<img src="data:image/png;base64,${png.toString("base64")}" style="border:1px solid #ddd" />
+<img src="data:${mime};base64,${qrBuf.toString("base64")}" style="border:1px solid #ddd" />
 <p style="color:#888">扫完此页可关闭</p></body>`;
     const server = createServer((_req, res) => {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -63,7 +64,7 @@ export default defineCommand({
 
     // 4. 轮询 /login/scan 每 2s(最多 ~2 分钟)
     let status = -1;
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 120; i++) {
       await sleep(2000);
       const scRes = await fetch(`${cfg.baseUrl}/login/scan`, { headers: { Cookie: `uuid=${uuid}` } });
       const scBody = (await scRes.json()) as { status?: number };
@@ -90,7 +91,7 @@ export default defineCommand({
     const bBody = (await bRes.json()) as { authKey?: string; error?: string };
     server.close();
     if (!bBody.authKey) {
-      console.error("bizlogin failed:", bBody.error ?? bBody);
+      console.error("bizlogin failed:", bBody.error, "|", bBody.message ?? "");
       process.exit(4);
     }
     saveConfig({ ...cfg, authKey: bBody.authKey });

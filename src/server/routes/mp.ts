@@ -1,5 +1,5 @@
 import { Hono, type Context } from "hono";
-import { proxyMpRequest } from "../../auth/proxyMpRequest.js";
+import { proxyMpRequest, decodeMpBody } from "../../auth/proxyMpRequest.js";
 import { cookieVault } from "../../auth/CookieVault.js";
 import type {
   AppMsgPublishResponse,
@@ -45,11 +45,12 @@ mpApp.get("/articles", async (c) => {
     },
   });
 
+  const bodyText = decodeMpBody(res.body);
   let resp: AppMsgPublishResponse;
   try {
-    resp = JSON.parse(res.body) as AppMsgPublishResponse;
+    resp = JSON.parse(bodyText) as AppMsgPublishResponse;
   } catch {
-    return c.json({ error: "wechat returned non-JSON", raw: res.body.slice(0, 300) }, 502);
+    return c.json({ error: "wechat returned non-JSON", raw: bodyText.slice(0, 300) }, 502);
   }
   if (resp.base_resp?.ret !== 0) {
     return c.json({ error: "wechat api error", base_resp: resp.base_resp, status: "expired" }, 401);
@@ -78,11 +79,12 @@ mpApp.get("/search", async (c) => {
     authKey: key,
     query: { action: "search_biz", begin, count, query, token, lang: "zh_CN", f: "json", ajax: 1 },
   });
+  const bodyText = decodeMpBody(res.body);
   let resp: SearchBizResponse;
   try {
-    resp = JSON.parse(res.body) as SearchBizResponse;
+    resp = JSON.parse(bodyText) as SearchBizResponse;
   } catch {
-    return c.json({ error: "wechat returned non-JSON", raw: res.body.slice(0, 300) }, 502);
+    return c.json({ error: "wechat returned non-JSON", raw: bodyText.slice(0, 300) }, 502);
   }
   if (resp.base_resp?.ret !== 0) {
     return c.json({ error: "wechat api error", base_resp: resp.base_resp, status: "expired" }, 401);
@@ -106,11 +108,12 @@ mpApp.get("/check", async (c) => {
       token, lang: "zh_CN", f: "json", ajax: 1,
     },
   });
+  const bodyText = decodeMpBody(res.body);
   try {
-    const resp = JSON.parse(res.body) as AppMsgPublishResponse;
+    const resp = JSON.parse(bodyText) as AppMsgPublishResponse;
     const ok = resp.base_resp?.ret === 0;
     return c.json({ status: ok ? "ok" : "expired", ret: resp.base_resp?.ret });
   } catch {
-    return c.json({ status: "expired", raw: res.body.slice(0, 200) }, 401);
+    return c.json({ status: "expired", raw: bodyText.slice(0, 200) }, 401);
   }
 });

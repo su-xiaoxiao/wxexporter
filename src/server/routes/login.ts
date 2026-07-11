@@ -13,7 +13,7 @@ function getUuid(c: Context): string | null {
 
 /**
  * 扫码登录 4 endpoint(透明代理 mp.weixin.qq.com)。流程见 plan:
- *  session/:sid → qrcode(PNG)→ scan(轮询)→ bizlogin(存 cookieVault + 返 authKey)。
+ *  session/:sid → qrcode(JPEG)→ scan(轮询)→ bizlogin(存 cookieVault + 返 authKey)。
  * uuid cookie 由 client 持有并透传(扫码流程用)。
  */
 export const loginApp = new Hono();
@@ -32,7 +32,7 @@ loginApp.post("/session/:sid", async (c) => {
   return c.json({ ok: true });
 });
 
-// GET /login/qrcode → 微信 scanloginqrcode?action=getqrcode(uuid) → 返 PNG
+// GET /login/qrcode → 微信 scanloginqrcode?action=getqrcode(uuid) → 返二维码 JPEG(二进制透传)
 loginApp.get("/qrcode", async (c) => {
   const uuid = getUuid(c);
   if (!uuid) return c.json({ error: "no uuid cookie (call /login/session first)" }, 400);
@@ -42,7 +42,8 @@ loginApp.get("/qrcode", async (c) => {
     query: { action: "getqrcode", random: Date.now() },
     cookie: `uuid=${uuid}`,
   });
-  c.header("content-type", "image/png");
+  // 透传微信 content-type(微信返 JPEG)+ 二进制 body(ArrayBuffer,不损坏)
+  c.header("content-type", res.headers.get("content-type") ?? "image/jpeg");
   return c.body(res.body);
 });
 
@@ -56,6 +57,7 @@ loginApp.get("/scan", async (c) => {
     query: { action: "ask", token: "", lang: "zh_CN", f: "json", ajax: 1 },
     cookie: `uuid=${uuid}`,
   });
+  // 透传微信 JSON 二进制,client fetch .json() 解
   c.header("content-type", "application/json");
   return c.body(res.body);
 });
@@ -68,7 +70,19 @@ loginApp.post("/bizlogin", async (c) => {
     const res = await proxyMpRequest({
       method: "POST",
       endpoint: BIZLOGIN,
-      query: { action: "login", lang: "zh_CN", f: "json", ajax: 1 },
+      query: { action: "login" },
+      body: {
+        userlang: "zh_CN",
+        redirect_url: "",
+        cookie_forbidden: 0,
+        cookie_cleaned: 0,
+        plugin_used: 0,
+        login_type: 3,
+        token: "",
+        lang: "zh_CN",
+        f: "json",
+        ajax: 1,
+      },
       cookie: `uuid=${uuid}`,
       action: "login",
     });
