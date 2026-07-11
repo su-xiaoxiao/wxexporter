@@ -5,6 +5,7 @@ import { ScraplingFetcher, ArticleFetchError } from "../core/ScraplingFetcher.js
 import login from "./login.js";
 import articles from "./articles.js";
 import search from "./search.js";
+import exportCmd from "./export.js";
 
 const articleCommand = defineCommand({
   meta: { name: "article", description: "Fetch a WeChat article as Markdown (local, no server needed)" },
@@ -50,6 +51,7 @@ const main = defineCommand({
     login,
     articles,
     search,
+    export: exportCmd,
   },
 });
 
