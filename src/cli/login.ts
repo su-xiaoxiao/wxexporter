@@ -88,7 +88,7 @@ export default defineCommand({
       method: "POST",
       headers: { Cookie: `uuid=${uuid}` },
     });
-    const bBody = (await bRes.json()) as { authKey?: string; error?: string };
+    const bBody = (await bRes.json()) as { authKey?: string; error?: string; message?: string };
     server.close();
     if (!bBody.authKey) {
       console.error("bizlogin failed:", bBody.error, "|", bBody.message ?? "");
