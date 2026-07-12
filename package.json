@@ -1,11 +1,15 @@
 {
   "name": "wxexporter",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "WeChat article → Markdown capability service (core workflow extracted from wechat-article-exporter). Pure capability layer: no git, no vault orchestration, no business state.",
   "type": "module",
   "packageManager": "pnpm@11.11.0",
-  "engines": { "node": ">=20" },
-  "bin": { "wxexport": "./dist/cli/index.js" },
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "wxexport": "./dist/cli/index.js"
+  },
   "scripts": {
     "dev": "tsx watch src/server/app.ts",
     "build": "tsc",
@@ -16,10 +20,12 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "better-sqlite3": "^11.5.0",
     "citty": "^0.1.6",
     "execa": "^9.5.1",
     "hono": "^4.6.0",
+    "marked": "^18.0.6",
     "pino": "^9.5.0",
     "zod": "^3.23.0"
   },
