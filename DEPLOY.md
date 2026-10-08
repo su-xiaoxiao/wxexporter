@@ -9,6 +9,24 @@
 
 ## 服务端
 
+### Docker
+
+镜像包含 Node.js 22、Python 3.11、固定版本 uv 和按 `uv.lock` 安装的抓取依赖，运行时不下载依赖。服务以普通用户运行，登录会话和正文缓存保存在 `wxexporter-data` 卷中。
+
+```bash
+docker compose up -d --build
+docker compose ps
+curl http://127.0.0.1:3004/status
+```
+
+HTTP 和 MCP 共用主机端口 3004，仅绑定本机回环。健康检查使用 `/status`。重启 Docker 后服务自动恢复，数据卷不会随容器重建丢失。
+
+与 knowledge-sync 联合部署时，从 `knowledge-sync` 目录运行其 Compose：它会构建并管理两个服务，使用 `http://wxexporter:3000` 作为内部调用地址。独立与联合部署二选一，同一数据卷只运行一个 wxexporter 实例。
+
+uv 双阶段镜像集成参考[官方 Docker 文档](https://docs.astral.sh/uv/guides/integration/docker/)。首次使用仍需要在 knowledge-sync 中扫码，Docker 不会替代微信登录确认。
+
+### 本机运行
+
 ```bash
 git clone <repo> wxexporter && cd wxexporter
 pnpm install            # TS 依赖
@@ -53,6 +71,12 @@ wxexport export "<fakeid>" --max 50 --concurrency 3 --out-dir ./out --resume
 
 ## 验证
 
+构建时可运行 Node.js 22 环境下的完整测试，不修改线上数据卷：
+
+```bash
+docker build --target test -t wxexporter:test .
+```
+
 ```bash
 curl localhost:3000/status
 curl -X POST 'localhost:3000/article?url=https://mp.weixin.qq.com/s/xxx&format=html'   # → HTML
@@ -69,9 +93,9 @@ curl -X POST localhost:3000/mcp \
 
 ## 待定
 
-- Docker 双运行时镜像（一镜像含 Node + Python + .venv）— #1 outside voice
+- Docker 双运行时镜像与持久化数据卷已实现，见上述部署步骤
 - CLI 分发（native binary via `pkg`/`bun build --compile`？pnpm global？）
 - scrapling 常驻 worker pool（现 spawn-on-demand，M2 优化为固定 venv 已够）— eng review P1
 - 进程管理（systemd / pm2）
-- pyproject 依赖锁（`uv.lock` 提交，保证服务器装版本一致）
+- Python 依赖使用已提交的 `uv.lock`，构建时冻结安装
 - 网关认证（MCP/HTTP 端口生产暴露时必须）

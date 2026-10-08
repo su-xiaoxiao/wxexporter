@@ -1,0 +1,13 @@
+services:
+  wxexporter:
+    build: .
+    image: wxexporter:local
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:3004:3000"
+    volumes:
+      - wxexporter-data:/app/.data
+volumes:
+  wxexporter-data:
+    name: wxexporter-data

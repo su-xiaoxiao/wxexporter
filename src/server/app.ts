@@ -10,6 +10,7 @@ import { createMcpApp } from "./mcp.js";
 import { logger } from "../logger.js";
 
 const app = new Hono();
+process.umask(0o077);
 
 const facade = new LocalFacade(new ScraplingFetcher());
 

@@ -1,4 +1,4 @@
-# pnpm 11 settings. esbuild (tsx/vitest) postinstall links the platform binary.
-dangerouslyAllowAllBuilds: true
-onlyBuiltDependencies:
-  - esbuild
+# Only approved native/runtime dependencies may execute installation scripts.
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
