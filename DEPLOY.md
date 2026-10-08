@@ -25,6 +25,8 @@ HTTP 和 MCP 共用主机端口 3004，仅绑定本机回环。健康检查使�
 
 uv 双阶段镜像集成参考[官方 Docker 文档](https://docs.astral.sh/uv/guides/integration/docker/)。首次使用仍需要在 knowledge-sync 中扫码，Docker 不会替代微信登录确认。
 
+当前已部署到 [Homarr 门户](https://xiaosu.me/)，首页“wxexporter · 公众号采集”卡片打开 `https://wxexporter.xiaosu.me/status`。公网 HTTP 与 MCP 均由门户会话保护；knowledge-sync 的后台调用仍走 Docker 内部网络。
+
 ### 本机运行
 
 ```bash
