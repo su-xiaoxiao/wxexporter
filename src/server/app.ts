@@ -16,6 +16,7 @@ const facade = new LocalFacade(new ScraplingFetcher());
 
 app.route("/article", articleRoutes(facade));
 app.route("/status", statusApp);
+app.get("/", (c) => c.redirect("/status"));
 app.route("/login", loginApp);
 app.route("/mp", mpApp(facade));
 

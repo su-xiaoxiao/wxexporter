@@ -11,6 +11,7 @@ interface RequestRecord {
   url: string;
   status: "ok" | "error";
   ts: number;
+  ret?: number;
 }
 
 const MAX_RECENT = 50;

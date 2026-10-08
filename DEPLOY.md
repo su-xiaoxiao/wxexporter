@@ -19,7 +19,7 @@ docker compose ps
 curl http://127.0.0.1:3004/status
 ```
 
-HTTP 和 MCP 共用主机端口 3004，仅绑定本机回环。健康检查使用 `/status`。重启 Docker 后服务自动恢复，数据卷不会随容器重建丢失。
+HTTP 和 MCP 共用主机端口 3004，仅绑定本机回环。浏览器访问 `/status` 会显示运行状态页；普通 HTTP 客户端与健康检查仍取得 JSON，也可显式使用 `/status/json`。重启 Docker 后服务自动恢复，数据卷不会随容器重建丢失。
 
 与 knowledge-sync 联合部署时，从 `knowledge-sync` 目录运行其 Compose：它会构建并管理两个服务，使用 `http://wxexporter:3000` 作为内部调用地址。独立与联合部署二选一，同一数据卷只运行一个 wxexporter 实例。
 

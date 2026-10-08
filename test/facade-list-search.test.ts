@@ -7,7 +7,8 @@ import os from "node:os";
 // it just TextDecoder.decode()s the ArrayBuffer we fake. cookieVault stays real
 // (temp SQLite DB), so we inject a known authKey beforeAll.
 vi.mock("../src/auth/proxyMpRequest.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/auth/proxyMpRequest.js")>();
+  const actual =
+    await importOriginal<typeof import("../src/auth/proxyMpRequest.js")>();
   return { ...actual, proxyMpRequest: vi.fn() };
 });
 
@@ -34,7 +35,12 @@ function enc(s: string): ArrayBuffer {
   return new TextEncoder().encode(s).buffer;
 }
 function mpResult(body: string) {
-  return { status: 200, headers: new Headers(), body: enc(body), setCookies: [] };
+  return {
+    status: 200,
+    headers: new Headers(),
+    body: enc(body),
+    setCookies: [],
+  };
 }
 function makeArticle(title: string, link: string) {
   return {
@@ -71,7 +77,10 @@ const facade = new LocalFacade({} as never);
 
 describe("LocalFacade list/search/check (login-gated, M3 下沉)", () => {
   it("listArticles ok → {total, articles}", async () => {
-    const pp = makePublishPage([makeArticle("T1", "L1"), makeArticle("T2", "L2")]);
+    const pp = makePublishPage([
+      makeArticle("T1", "L1"),
+      makeArticle("T2", "L2"),
+    ]);
     proxyMpRequest.mockResolvedValue(
       mpResult(JSON.stringify({ base_resp: { ret: 0 }, publish_page: pp })),
     );
@@ -86,13 +95,34 @@ describe("LocalFacade list/search/check (login-gated, M3 下沉)", () => {
 
   it("listArticles expired (ret≠0) → ok:false expired:true ret", async () => {
     proxyMpRequest.mockResolvedValue(
-      mpResult(JSON.stringify({ base_resp: { ret: 200003, err_msg: "expired" }, publish_page: "" })),
+      mpResult(
+        JSON.stringify({
+          base_resp: { ret: 200003, err_msg: "expired" },
+          publish_page: "",
+        }),
+      ),
     );
     const r = await facade.listArticles("k1", "fake", 0, 5);
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.expired).toBe(true);
       expect(r.ret).toBe(200003);
+    }
+  });
+
+  it("frequency control is not login expiry across list/search/check", async () => {
+    proxyMpRequest.mockResolvedValue(
+      mpResult(
+        JSON.stringify({ base_resp: { ret: 200013, err_msg: "freq control" } }),
+      ),
+    );
+    for (const result of [
+      await facade.listArticles("k1", "fake", 0, 5),
+      await facade.searchBiz("k1", "人月", 0, 5),
+      await facade.checkLogin("k1"),
+    ]) {
+      expect(result).toMatchObject({ ok: false, expired: false, ret: 200013 });
+      if (!result.ok) expect(result.error).toContain("freq control");
     }
   });
 
@@ -121,7 +151,14 @@ describe("LocalFacade list/search/check (login-gated, M3 下沉)", () => {
           base_resp: { ret: 0 },
           total: 1,
           list: [
-            { alias: "", fakeid: "fid", nickname: "NN", round_head_img: "", service_type: 0, signature: "sig" },
+            {
+              alias: "",
+              fakeid: "fid",
+              nickname: "NN",
+              round_head_img: "",
+              service_type: 0,
+              signature: "sig",
+            },
           ],
         }),
       ),
@@ -145,7 +182,9 @@ describe("LocalFacade list/search/check (login-gated, M3 下沉)", () => {
 
   it("checkLogin ret≠0 → expired", async () => {
     proxyMpRequest.mockResolvedValue(
-      mpResult(JSON.stringify({ base_resp: { ret: 200003 }, publish_page: "" })),
+      mpResult(
+        JSON.stringify({ base_resp: { ret: 200003 }, publish_page: "" }),
+      ),
     );
     const r = await facade.checkLogin("k1");
     expect(r.ok).toBe(false);

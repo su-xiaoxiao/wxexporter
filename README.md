@@ -64,8 +64,13 @@ GET  /mp/search?query=<kw>&count=5                            # 搜公众号（�
 GET  /mp/articles?fakeid=<id>&begin=0&count=5                 # 列文章（需 X-Auth-Key）
 GET  /mp/check                                                 # 登录态（需 X-Auth-Key）
 GET  /login/session/:sid | /login/qrcode | /login/scan | POST /login/bizlogin  # 扫码登录流程
-GET  /status                                                   # 运维页（uptime/recent/worker）
+GET  /status                                                   # 浏览器运维页；非 HTML 请求返回 JSON
+GET  /status/json                                              # 状态 JSON（显式接口）
 ```
+
+浏览器访问 `/` 会进入 `/status` 运行状态页，查看 uptime、抓取引擎与最近请求（含微信错误码）。状态记录只保存在当前进程内。原 `wechat-article-exporter` 的完整 Nuxt 导出界面没有移植；联用 Knowledge Sync 时，扫码登录、订阅与任务由工作台提供。
+
+微信返回 `base_resp.ret=200013`（`freq control`）时，服务返回 HTTP 429、`status: "restricted"`，保留错误码。此错误不能判定登录过期，搜索成功也不保证文章列表可用；减少请求并稍后手动重试，不保证固定冷却时间。登录失效仍返回 401，非 JSON 上游异常返回 502。响应不转发原始错误页面，避免泄露凭证。
 
 `X-Auth-Key` header 带 authKey（`login` 返回，存 `~/.wxexport/config.json`）。
 
@@ -112,7 +117,7 @@ GET  /status                                                   # 运维页（upt
 ## 开发
 
 ```bash
-pnpm test              # vitest (30 tests: format/facade-list-search/mcp + 回归)
+pnpm test              # vitest (34 tests: format/facade-list-search/mcp + 回归)
 pnpm exec tsc --noEmit # 类型检查
 pnpm build             # tsc → dist/
 pnpm dev               # tsx watch

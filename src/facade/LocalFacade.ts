@@ -11,15 +11,29 @@ import type { ArticleFetcher } from "../core/ArticleFetcher.js";
 import { ArticleFetchError } from "../core/ScraplingFetcher.js";
 import { proxyMpRequest, decodeMpBody } from "../auth/proxyMpRequest.js";
 import { cookieVault } from "../auth/CookieVault.js";
-import type { AppMsgPublishResponse, SearchBizResponse } from "../server/wxTypes.js";
+import type {
+  AppMsgPublishResponse,
+  SearchBizResponse,
+} from "../server/wxTypes.js";
 import { parseArticles } from "../server/wxTypes.js";
 
 const APPMSGPUBLISH = "https://mp.weixin.qq.com/cgi-bin/appmsgpublish";
 const SEARCHBIZ = "https://mp.weixin.qq.com/cgi-bin/searchbiz";
 
-/** Login-gated failure: authKey unknown or wechat says session expired (ret≠0). */
+/** Login-gated failure: authKey unknown or wechat says session expired. */
 function mpExpired(ret: number | undefined, reason: string): MpErr {
   return { ok: false, expired: true, ret, error: reason };
+}
+function mpApiError(ret: number | undefined): MpErr {
+  if (ret === 200013)
+    return {
+      ok: false,
+      expired: false,
+      ret,
+      error:
+        "微信接口受限（ret=200013 / freq control），请稍后手动重试；此错误不代表登录过期",
+    };
+  return mpExpired(ret, "wechat api error");
 }
 /** Non-expiry wechat failure (non-JSON body, network, etc). */
 function mpErr(error: string, raw: string): MpErr {
@@ -84,7 +98,7 @@ export class LocalFacade implements Facade {
       return mpErr("wechat returned non-JSON", bodyText.slice(0, 300));
     }
     if (resp.base_resp?.ret !== 0) {
-      return mpExpired(resp.base_resp?.ret, "wechat api error");
+      return mpApiError(resp.base_resp?.ret);
     }
     const { total, articles } = parseArticles(resp.publish_page);
     return { ok: true, data: { total, articles } };
@@ -121,7 +135,7 @@ export class LocalFacade implements Facade {
       return mpErr("wechat returned non-JSON", bodyText.slice(0, 300));
     }
     if (resp.base_resp?.ret !== 0) {
-      return mpExpired(resp.base_resp?.ret, "wechat api error");
+      return mpApiError(resp.base_resp?.ret);
     }
     return { ok: true, data: { total: resp.total, list: resp.list } };
   }
@@ -152,7 +166,7 @@ export class LocalFacade implements Facade {
       const resp = JSON.parse(bodyText) as AppMsgPublishResponse;
       const ret = resp.base_resp?.ret ?? -1;
       if (ret === 0) return { ok: true, data: { ret } };
-      return mpExpired(ret, "login expired");
+      return mpApiError(ret);
     } catch {
       return mpErr("wechat returned non-JSON", bodyText.slice(0, 200));
     }

@@ -114,7 +114,7 @@ export async function createMcpApp(facade: Facade): Promise<Hono> {
       const key = resolveAuthKey(authKey);
       if (!key) return fail("no authKey — run `wxexport login`");
       const r = await facade.checkLogin(key);
-      if (!r.ok) return ok(JSON.stringify({ status: "expired", ret: r.ret }));
+      if (!r.ok) return ok(JSON.stringify({ status: r.expired ? "expired" : r.ret === 200013 ? "restricted" : "error", ret: r.ret, error: r.error }));
       return ok(JSON.stringify({ status: "ok", ret: r.data.ret }));
     },
   );
